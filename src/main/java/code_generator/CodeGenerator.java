@@ -97,7 +97,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "div");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(codeSize + ":\n %" + tempNumber + " = fdiv " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -111,7 +111,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mod");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(codeSize + ":\n %" + tempNumber + " = frem " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -125,7 +125,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "add");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(codeSize + ":\n %" + tempNumber + " = fadd " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -139,11 +139,95 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "sub");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(codeSize + ":\n %" + tempNumber + " = fsub " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
                 codeArray.add(codeSize + ":\n %" + tempNumber + " = sub " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("less")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "less");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fcmp slt " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = icmp slt " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("greater")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "greater");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fcmp sgt " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = icmp sgt " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("lessEq")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "lessEq");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fcmp sle " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = icmp sle " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("greaterEq")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "greaterEq");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fcmp gle " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = icmp gle " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("eq")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "eq");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fcmp eq " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = icmp eq " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("notEq")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "notEq");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fcmp ne " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = icmp ne " + referenceVariableType + " %" + id1 + " ,%" + id2);
             }
             semanticStack.push(String.valueOf(tempNumber));
             symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
