@@ -45,8 +45,6 @@ public class CodeGenerator {
                 symbolTable.put(id, new IDescription(variableType, false));
                 String code = codeSize + ":\n %" + id + " = alloca " + variableType;
                 codeArray.add(code);
-//                codeSize++;
-//                codeArray.add(codeSize + ":\n %" + id + " = load " + variableType + ", " + variableType + "* %ptr" + id);
             }
             else {
                 StringBuilder arrayVariableType = new StringBuilder(variableType);
@@ -232,6 +230,57 @@ public class CodeGenerator {
             semanticStack.push(String.valueOf(tempNumber));
             symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
             tempNumber++;
+        } else if (sem.equals("bitwiseAnd")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "bitwiseAnd");
+            codeArray.add(codeSize + ":\n %" + tempNumber + " = and " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("xor")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "xor");
+            codeArray.add(codeSize + ":\n %" + tempNumber + " = xor " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("bitwiseOr")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "bitwiseOr");
+            codeArray.add(codeSize + ":\n %" + tempNumber + " = or " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("logicalAnd")) {
+            // TODO: Implement logical and
+        } else if (sem.equals("logicalOr")) {
+            // TODO: Implement logical or
+        } else if (sem.equals("createJump")) {
+            String id = semanticStack.pop();
+            codeArray.add(codeSize + ":\n br i1 %" + id + ", label %" + (codeSize + 1) + ", label %");
+            semanticStack.push(String.valueOf(codeSize));
+        } else if (sem.equals("compJp")) {
+            codeArray.add(codeSize + ":\n ");
+            codeSize++;
+            int jumpIndex = Integer.parseInt(semanticStack.pop());
+            String code = codeArray.get(jumpIndex).concat(String.valueOf(codeSize));
+            codeArray.set(jumpIndex, code);
+        } else if (sem.equals("elseJp")) {
+            int jumpIndex = codeSize - 2;
+            codeArray.set(jumpIndex, codeArray.get(jumpIndex).concat("br label %"));
+            semanticStack.push(String.valueOf(jumpIndex));
+        } else if (sem.equals("compElseJp")) {
+            int jumpIndex = Integer.parseInt(semanticStack.pop());
+            codeArray.set(jumpIndex, codeArray.get(jumpIndex).concat(String.valueOf(codeSize)));
         }
     }
 
