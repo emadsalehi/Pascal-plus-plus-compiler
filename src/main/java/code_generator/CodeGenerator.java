@@ -16,7 +16,7 @@ public class CodeGenerator {
 
     public void generateCode(String sem, Symbol symbol) throws Exception {
         int codeSize = codeArray.size();
-        if (sem.equals("push")) {
+        if (sem.equals("pushNew")) {
             semanticStack.push((String) symbol.value);
         } else if (sem.equals("pushType")) {
             semanticStack.push((String) symbol.value);
@@ -35,7 +35,7 @@ public class CodeGenerator {
                     variableType = "i32";
                     break;
                 case 7:
-                    variableType = "double";
+                    variableType = "float";
                     break;
                 case 8:
                     variableType = "i8*";
@@ -43,7 +43,7 @@ public class CodeGenerator {
             }
             if (sem.equals("vdscp")) {
                 symbolTable.put(id, new IDescription(variableType, false));
-                String code = codeSize + ":\n %ptr" + id + " = alloca " + variableType;
+                String code = codeSize + ":\n %" + id + " = alloca " + variableType;
                 codeArray.add(code);
 //                codeSize++;
 //                codeArray.add(codeSize + ":\n %" + id + " = load " + variableType + ", " + variableType + "* %ptr" + id);
@@ -68,10 +68,9 @@ public class CodeGenerator {
             String id = semanticStack.peek();
             String assignVariableType = symbolTable.get(assignId).getType();
             String variableType = symbolTable.get(semanticStack.peek()).getType();
-            codeArray.add(codeSize + ":\n %" + assignId + " = load " + variableType + ", " + variableType + "* %ptr " + assignId);
             codeSize++;
             if (!assignCheckType(assignVariableType, assignId, variableType)) throw new Exception("Wrong assign variable check type");
-            codeArray.add(codeSize + ":\n store " + variableType + " %" + assignId + ", " + variableType + "* %ptr" + id);
+            codeArray.add(codeSize + ":\n store " + variableType + " %" + assignId + ", " + variableType + "* %" + id);
         } else if (sem.equals("clearCnt")) {
             tempCounter = 0;
         } else if (sem.equals("pushNumber")) {
@@ -85,11 +84,70 @@ public class CodeGenerator {
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
             String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
-
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fmul " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = mul " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
         } else if (sem.equals("div")) {
-
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fdiv " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = div " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
         } else if (sem.equals("mod")) {
-
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = frem " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = srem " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("add")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fadd " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = add " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
+        } else if (sem.equals("sub")) {
+            String id2 = semanticStack.pop();
+            String id1 = semanticStack.pop();
+            String variableType1 = symbolTable.get(id1).getType();
+            String variableType2 = symbolTable.get(id2).getType();
+            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
+            if (referenceVariableType.equals("float")) {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = fsub " + referenceVariableType + " %" + id1 + ", %" + id2);
+            } else {
+                codeArray.add(codeSize + ":\n %" + tempNumber + " = sub " + referenceVariableType + " %" + id1 + " ,%" + id2);
+            }
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
+            tempNumber++;
         }
     }
 
