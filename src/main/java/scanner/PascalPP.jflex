@@ -60,15 +60,17 @@ nonrightEC   	= [^(\-\->)]
 comment_body    = {nonrightEC}*
 nonrightE		= [^\n]
 comment_b		= {nonrightE}*
-comment         = [<][\-][\-]{comment_body}[\-][\-][>]|[\-][\-]{comment_b}[\n]
+comment         = [<][\-][\-]{comment_body}[\-][\-][>]|[\/][\/][^\n]*[\n]
 whitespace      = [ \n\t\f\r\v]*
-string			= \"([^\"\\\\]|\\\\.)*\"
+string			= \"([^\"\\]|\\.)*\"
 boolean         = true|false
 
 %%
 /**
  * LEXICAL RULES:
  */
+{comment}       { /* For this stand-alone lexer, print out comments. */
+                   System.out.println("Recognized comment: " + yytext()); }
 boolean			{ return newSym(sym.BOOL_KW); }
 char			{ return newSym(sym.CHAR_KW); }
 integer			{ return newSym(sym.INT_KW); }
@@ -123,8 +125,6 @@ var             { return newSym(sym.VAR); }
 {integer}       { return newSym(sym.INT, new Integer(yytext())); }
 {real}          { return newSym(sym.REAL, new Double(yytext())); }
 {char}          { return newSym(sym.CHAR, new Character(yytext().charAt(1))); }
-{comment}       { /* For this stand-alone lexer, print out comments. */
-                  System.out.println("Recognized comment: " + yytext()); }
 {whitespace}    { /* Ignore whitespace. */ }
 .               { System.out.println("Illegal char, '" + yytext() +
                     "' line: " + yyline + ", column: " + yychar); }

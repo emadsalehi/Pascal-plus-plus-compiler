@@ -30,7 +30,7 @@ public class Parser {
         CSVReader csvReader = null;
         List<String[]> parseTableEntries = null;
         try {
-            FileReader parseTableFileReader = new FileReader("ParseTable2.csv");
+            FileReader parseTableFileReader = new FileReader("ParseTable.csv");
             csvReader = new CSVReaderBuilder(parseTableFileReader).withSkipLines(0).build();
             parseTableEntries = csvReader.readAll();
         } catch (FileNotFoundException e) {
@@ -105,6 +105,7 @@ public class Parser {
                     alive = false;
                 }
             }
+            codeGenerator.addGlobalString();
             codeGenerator.printAllCode();
         } catch (Exception e) {
             e.printStackTrace();
