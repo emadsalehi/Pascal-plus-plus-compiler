@@ -56,7 +56,7 @@ public class Parser {
         }
 
         FileReader codeFile = null;
-        String srcName =  fileName + ".pascal";
+        String srcName =  fileName + ".ppp";
         try {
             codeFile = new FileReader(srcName);
         } catch (FileNotFoundException e) {
