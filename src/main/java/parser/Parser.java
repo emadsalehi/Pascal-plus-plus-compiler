@@ -1,9 +1,10 @@
 package parser;
 
+import code_generator.CodeGenerator;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import java_cup.runtime.Symbol;
-import scanner.PascalLexer;
+import scanner.PascalPPLexer;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -29,7 +30,7 @@ public class Parser {
         CSVReader csvReader = null;
         List<String[]> parseTableEntries = null;
         try {
-            FileReader parseTableFileReader = new FileReader("ParseTable.csv");
+            FileReader parseTableFileReader = new FileReader("ParseTable2.csv");
             csvReader = new CSVReaderBuilder(parseTableFileReader).withSkipLines(0).build();
             parseTableEntries = csvReader.readAll();
         } catch (FileNotFoundException e) {
@@ -43,20 +44,21 @@ public class Parser {
         List<String> states = new ArrayList<String>();
 
         // Read states
-        for (int i = 1 ; i < parseTableEntries.size() ; i++)
+        for (int i = 1; i < parseTableEntries.size(); i++)
             states.add(parseTableEntries.get(i)[0]);
         // Construct tokens
-        for (int i = 1 ; i <  tokens.length ; i++)
+        for (int i = 1; i < tokens.length; i++)
             parseTable.put(tokens[i], new HashMap<Integer, String>());
         // Create ParseTable
-        for (String[] row : parseTableEntries) {
-            for (int i = 1 ; i < row.length ; i++) {
+        for (int j = 1; j < parseTableEntries.size(); j++) {
+            String[] row = parseTableEntries.get(j);
+            for (int i = 1; i < row.length; i++) {
                 parseTable.get(tokens[i]).put(Integer.valueOf(row[0]), row[i]);
             }
         }
 
         FileReader codeFile = null;
-        String srcName =  fileName + ".ppp";
+        String srcName = fileName + ".ppp";
         try {
             codeFile = new FileReader(srcName);
         } catch (FileNotFoundException e) {
@@ -64,28 +66,38 @@ public class Parser {
             e.printStackTrace();
         }
 
-        PascalLexer pascalLexer = new PascalLexer(codeFile);
+        PascalPPLexer pascalPPLexer = new PascalPPLexer(codeFile);
+        CodeGenerator codeGenerator = new CodeGenerator();
 
         try {
-            Symbol symbol = pascalLexer.next_token();
-            String token = String.valueOf(symbol.sym);
+            Symbol symbol = pascalPPLexer.next_token();
+            Stack<String> tokenStack = new Stack<String>();
+            tokenStack.push(String.valueOf(symbol.sym));
             boolean alive = true;
             while (alive) {
-                String[] actionParams = parseTable.get(token).get(currentState).split(" ");
+                String[] actionParams = parseTable.get(tokenStack.peek()).get(currentState).split(" ");
                 String mainAction = actionParams[0];
                 String codeGenToken = actionParams[actionParams.length - 1];
                 if (mainAction.equals(SHIFT)) {
+                    codeGenerator.generateCode(codeGenToken, symbol);
                     currentState = Integer.parseInt(actionParams[1].substring(1));
-                    symbol = pascalLexer.next_token();
-                    token = String.valueOf(symbol.sym);
+                    symbol = pascalPPLexer.next_token();
+                    tokenStack.pop();
+                    if (symbol.sym == 0)
+                        tokenStack.push("$");
+                    else
+                        tokenStack.push(String.valueOf(symbol.sym));
                 } else if (mainAction.equals(PUSH_GOTO)) {
+                    codeGenerator.generateCode(codeGenToken, symbol);
                     parseStack.push(currentState);
                     currentState = Integer.parseInt(actionParams[1].substring(1));
                 } else if (mainAction.equals(GOTO)) {
+                    codeGenerator.generateCode(codeGenToken, symbol);
                     currentState = Integer.parseInt(actionParams[1].substring(1));
+                    tokenStack.pop();
                 } else if (mainAction.equals(REDUCE)) {
                     currentState = parseStack.pop();
-                    token = actionParams[1];
+                    tokenStack.push(actionParams[1]);
                 } else if (mainAction.equals(ERROR)) {
                     throw new Exception("Code cannot be compiled");
                 } else if (mainAction.equals(ACCEPT)) {
@@ -93,8 +105,10 @@ public class Parser {
                     alive = false;
                 }
             }
+            codeGenerator.printAllCode();
         } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 }

@@ -1,4 +1,4 @@
-package parser;
+package code_generator;
 
 public class IDescription {
 

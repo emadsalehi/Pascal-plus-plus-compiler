@@ -5,10 +5,10 @@ import java.util.List;
 
 public class FDescription {
 
-    int numberOfArguments = 0;
-    String returnType;
-    List<String> parameterVariableTypes = new ArrayList<String>();
-    List<String> parameterIds = new ArrayList<String>();
+    private int numberOfArguments = 0;
+    private String returnType;
+    private List<String> parameterVariableTypes = new ArrayList<String>();
+    private List<String> parameterIds = new ArrayList<String>();
 
 
     public List<String> getParameterIds() {

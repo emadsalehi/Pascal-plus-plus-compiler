@@ -63,4 +63,6 @@ public class sym {
     public static final int INT = 52;
     public static final int REAL = 53;
     public static final int STRING = 54;
+    public static final int WRITE = 55;
+    public static final int READ = 56;
 }

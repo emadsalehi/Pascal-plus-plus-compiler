@@ -1,7 +1,6 @@
 package code_generator;
 
 import java_cup.runtime.Symbol;
-import parser.IDescription;
 
 import java.util.*;
 
@@ -17,6 +16,7 @@ public class CodeGenerator {
 
     public void generateCode(String sem, Symbol symbol) throws Exception {
         int codeSize = codeArray.size();
+        sem = sem.substring(1);
         if (sem.equals("pushNew")) {
             semanticStack.push((String) symbol.value);
         } else if (sem.equals("pushType")) {
@@ -342,7 +342,7 @@ public class CodeGenerator {
         StringBuilder code = new StringBuilder("define " + functionReturnType + " @" + functionId + "(");
         List<String> variableTypes = functionTable.get(functionId).getParameterVariableTypes();
         List<String> variableIds = functionTable.get(functionId).getParameterIds();
-        for (int i = 0 ; i < functionTable.get(functionId).getNumberOfArguments() ; i++) {
+        for (int i = 0; i < functionTable.get(functionId).getNumberOfArguments(); i++) {
             code.append(variableTypes.get(i)).append(" %").append(variableIds.get(i));
             if (i < functionTable.get(functionId).getNumberOfArguments() - 1)
                 code.append(", ");
@@ -350,5 +350,11 @@ public class CodeGenerator {
         code.append(") {");
         codeArray.add(code.toString());
         codeArray.add("entry" + functionId + ":");
+    }
+
+    public void printAllCode() {
+        for (String code : codeArray) {
+            System.out.println(code);
+        }
     }
 }
