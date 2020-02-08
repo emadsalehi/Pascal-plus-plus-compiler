@@ -9,6 +9,7 @@ public class CodeGenerator {
     private int stp;
     private int tempNumber = 1;
     private int tempCounter = 0;
+    private String tempId = "";
     private Stack<String> semanticStack = new Stack<String>();
     private Map<String, IDescription> symbolTable = new HashMap<String, IDescription>();
     private Map<String, FDescription> functionTable = new HashMap<String, FDescription>();
@@ -28,6 +29,7 @@ public class CodeGenerator {
         sem = sem.substring(1);
         if (sem.equals("pushNew")) {
             semanticStack.push((String) symbol.value);
+            tempId = (String) symbol.value;
         } else if (sem.equals("pushType")) {
             semanticStack.push(getVariableType(symbol.sym));
         } else if (sem.equals("vdscp") || sem.equals("adscp")) {
@@ -36,7 +38,6 @@ public class CodeGenerator {
             if (sem.equals("vdscp")) {
                 symbolTable.put(id, new IDescription(variableType, false));
                 String code = ";label" + codeSize + ":\n\t %" + id + " = alloca " + variableType;
-                tempNumber++;
                 codeArray.add(code);
             } else {
                 StringBuilder arrayVariableType = new StringBuilder(variableType);
@@ -51,10 +52,9 @@ public class CodeGenerator {
                 // TODO : Add dimension description  to iDescription
                 symbolTable.put(id, iDescription);
                 String code = ";label" + codeSize + ":\n\t %" + id + " = alloca " + arrayVariableType;
-                tempNumber++;
                 codeArray.add(code);
             }
-        } else if (sem.equals("asgnDcl")) {
+        } else if (sem.equals("asgnDcl") | sem.equals("asgnArray")) {
             String assignId = semanticStack.pop();
             String id = semanticStack.peek();
             String assignVariableType = symbolTable.get(assignId).getType();
@@ -62,7 +62,9 @@ public class CodeGenerator {
             codeSize++;
             if (!assignCheckType(assignVariableType, assignId, variableType))
                 throw new Exception("Wrong assign variable check type");
-            codeArray.add(";label" + codeSize + ":\n\t store " + variableType + " %" + assignId + ", " + variableType + "* %" + id);
+            codeArray.add(";label" + codeSize + ":\n\tstore " + variableType + " %" + assignId + ", " + variableType + "* %" + id);
+            if (sem.equals("asgnArray"))
+                semanticStack.pop();
         } else if (sem.equals("clearCnt")) {
             tempCounter = 0;
         } else if (sem.equals("pushNumber")) {
@@ -75,7 +77,7 @@ public class CodeGenerator {
             String id2 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mul");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "mul");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fmul " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -89,11 +91,11 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "div");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "div");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fdiv " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
-                codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = div " + referenceVariableType + " %" + id1 + " ,%" + id2);
+                codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = sdiv " + referenceVariableType + " %" + id1 + " ,%" + id2);
             }
             semanticStack.push(String.valueOf(tempNumber));
             symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
@@ -103,7 +105,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "mod");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "mod");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = frem " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -117,7 +119,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "add");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "add");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fadd " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -131,7 +133,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "sub");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "sub");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fsub " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -145,7 +147,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "less");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "less");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fcmp slt " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -159,7 +161,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "greater");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "greater");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fcmp sgt " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -173,7 +175,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "lessEq");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "lessEq");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fcmp sle " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -187,7 +189,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "greaterEq");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "greaterEq");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fcmp gle " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -201,7 +203,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "eq");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "eq");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fcmp eq " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -215,7 +217,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "notEq");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "notEq");
             if (referenceVariableType.equals("float")) {
                 codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fcmp ne " + referenceVariableType + " %" + id1 + ", %" + id2);
             } else {
@@ -229,7 +231,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "bitwiseAnd");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "bitwiseAnd");
             codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = and " + referenceVariableType + " %" + id1 + " ,%" + id2);
             semanticStack.push(String.valueOf(tempNumber));
             symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
@@ -239,7 +241,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "xor");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "xor");
             codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = xor " + referenceVariableType + " %" + id1 + " ,%" + id2);
             semanticStack.push(String.valueOf(tempNumber));
             symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
@@ -249,7 +251,7 @@ public class CodeGenerator {
             String id1 = semanticStack.pop();
             String variableType1 = symbolTable.get(id1).getType();
             String variableType2 = symbolTable.get(id2).getType();
-            String referenceVariableType = operationCheckType(variableType1, id1, variableType2, id2, "bitwiseOr");
+            String referenceVariableType = booleanOperationCheckType(variableType1, id1, variableType2, id2, "bitwiseOr");
             codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = or " + referenceVariableType + " %" + id1 + " ,%" + id2);
             semanticStack.push(String.valueOf(tempNumber));
             symbolTable.put(String.valueOf(tempNumber), new IDescription(referenceVariableType, false));
@@ -366,6 +368,66 @@ public class CodeGenerator {
             String variableType = symbolTable.get(id).getType();
             codeArray.add(";label" + codeSize + ":\n\tret " + variableType + " %" + id);
             tempNumber++;
+        } else if (sem.equals("pushUnary")) {
+            semanticStack.push(String.valueOf(symbol.sym));
+        } else if (sem.equals("applyUnaryOp")) {
+            String id = semanticStack.pop();
+            String variableType = symbolTable.get(id).getType();
+            int unaryOpCode = Integer.parseInt(semanticStack.pop());
+            if (unaryOpCode == 24) {
+                if (!unaryOperationCheckType(variableType, id, "minus"))
+                    throw new Exception("Wrong variable type in minus");
+                if (variableType.equals("float")) {
+                    codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = fsub 0, %" + id);
+                } else {
+                    codeArray.add(";label" + codeSize + ":\n\t%" + tempNumber + " = sub 0, %" + id);
+                }
+                semanticStack.push(String.valueOf(tempNumber));
+                symbolTable.put(String.valueOf(tempNumber), new IDescription(variableType, false));
+                tempNumber++;
+            } else {
+                if (!unaryOperationCheckType(variableType, id, "not"))
+                    throw new Exception("Wrong variable type in not");
+                codeArray.add(";label" + codeSize + ":\n\t%" + tempNumber + " = xor -1, %" + id);
+                semanticStack.push(String.valueOf(tempNumber));
+                symbolTable.put(String.valueOf(tempNumber), new IDescription(variableType, false));
+                tempNumber++;
+            }
+        } else if (sem.equals("pushIdValue")) {
+            tempId = (String) symbol.value;
+            String variableType = symbolTable.get(tempId).getType();
+            codeArray.add(";label" + codeSize + ":\n\t%" + tempNumber + " = load " + variableType + ", " + variableType + "* %" + tempId);
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(variableType, false));
+            tempNumber++;
+        } else if (sem.equals("pushArrayId")) {
+            semanticStack.pop();
+            semanticStack.push(tempId);
+            tempCounter = 0;
+        } else if (sem.equals("pushArrayElementPointer")) {
+            Stack<String> arrayElements = new Stack<String>();
+            for (int i = 0; i < tempCounter; i++) {
+                if (!symbolTable.get(semanticStack.peek()).getType().equals("i32"))
+                    throw new Exception("Wrong array index");
+                arrayElements.add(semanticStack.pop());
+            }
+            String arrayId = semanticStack.pop();
+            String variableType = symbolTable.get(arrayId).getType();
+            StringBuilder loadPointer = new StringBuilder("getelementptr inbounds " + variableType + ", " + variableType + "* %" + arrayId + ", i32 0");
+            while (!arrayElements.isEmpty()) {
+                loadPointer.append(", i32 %").append(arrayElements.pop());
+            }
+            codeArray.add(";label" + codeSize + ":\n\t%" + tempNumber + " = " + loadPointer);
+            semanticStack.push(String.valueOf(tempNumber));
+            symbolTable.put(String.valueOf(tempNumber), new IDescription("i32", false));
+            tempNumber++;
+        } else if (sem.equals("loadValue")) {
+            String id = semanticStack.pop();
+            String variableType = symbolTable.get(id).getType();
+            codeArray.add(";label" + codeSize + ":\n\t %" + tempNumber + " = load " + variableType + ", " + variableType + "* %" + id);
+            symbolTable.put(String.valueOf(tempNumber), new IDescription(variableType, false));
+            semanticStack.add(String.valueOf(tempNumber));
+            tempNumber++;
         }
     }
 
@@ -375,11 +437,18 @@ public class CodeGenerator {
         return true;
     }
 
-    private String operationCheckType(String variableType1, String id1, String variableType2, String id2, String operationType) {
+    private String booleanOperationCheckType(String variableType1, String id1, String variableType2, String id2, String operationType) {
         // TODO: Check operation variable type
         // TODO: Cast variables to reference type
         return "i32";
     }
+
+    private boolean unaryOperationCheckType(String variableType, String id, String operationType) {
+        // TODO: Check operation variable type
+        // TODO: Cast variables to reference type
+        return true;
+    }
+
 
     private String getVariableType(int typeSymbol) {
         String variableType = "";
